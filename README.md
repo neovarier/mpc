@@ -23,29 +23,30 @@ The cost function is selected as:
 * (v(t+1) - 40)^2 - where 40 mph is the reference velocity. To minimize the deviation from velocity of 40 mph.
 * (delta(t))^2 - To eliminate extreme actuations on steering wheel
 * (a(t))^2 - To eliminate extreme actuations on throttle
-* (delta(t+1) - delta(t))^2 - To minimize drastic changes in steering wheel actuation
-* (a(t+1) - a(t))^2 - To minimize drastic changes in throttle actuation
+* (delta(t+1) - delta(t))^2 - To minimize drastic changes in steering wheel actuation over subsequent times
+* (a(t+1) - a(t))^2 - To minimize drastic changes in throttle actuation over subsequent times
 
 ## Timestep Length and Elapsed Duration (N & dt)
 
-Over a few runs of the car on the track at an average of 40 mph, I considered a horizon time T of 1 second. 
-I tried to tune N & dt keeping T=1 second (T=N*dt) with various combinations till I obtained the optimum set of values  (N,dt) which gave a good result. I tried (20,0.05), (15,0.65), (10,0.1), (5,0.2).
-Based on the observation N=10 & dt=0.1 gave good result.
+Over a few runs of the car on the track at an average of 40 mph, a horizon time T of 1 second was considered. 
+I tried to tune N & dt keeping T=1 second (T=N*dt) with various combinations till I obtained the optimum set of values  (N,dt) which gave a good result. I tried (20,0.05), (15,0.65), (10,0.1), (5,0.2). Having larger N slowed down the prediction as it took more computation for predicting that many number of points. And large dt will gave coarse or incorrect predication.
+Based on the observation N=10 & dt=0.1 gave good and fast result.
 
 ## Polynomial Fitting and MPC Preprocessing
 
- The reference waypoints and car position were transformed from Map coordinates to car coordinates. The car coordinates would be (0,0) and orientation would be 0 radians in car coordinates space. A 3rd order polynomial is used to fit the reference waypoints.
+ The reference waypoints and car position were transformed from Map coordinates to car coordinates. The car coordinates would be (0,0) and orientation would be 0 radians in car coordinates space. A 3rd degree polynomial is used to fit the reference waypoints.
  f(x) = a0 + a1*x + a2*x^2 + a3*x^3.
  The cross track error and orientation error are directly calculated as:
  cte = f(0)
  epsi = -arctan(f'(0))
  
-Calcualting the cte & epsi in Map coordinate space would involve a lot of mathematics. Instead it is easier to calculate them in car coordinate system. 
+Calculating the cte & epsi in Map coordinate space would involve a lot of mathematics. Instead it is easier to calculate them in car coordinate system. 
 The calculated state [x,y,psi,cte,epsi] is fed to the MPC solver to predict the next steering angle and throttle to be applied.
+It will also predict the new N predicted positions of the car.
 
 ## Model Predictive Control with Latency
 
-The simulation system is set with a latency of 0.1 seconds. So a actuation of steering angle(delta) and throttle(a) would take into affect after 0.1 seconds. This can be taken into account by feeding MPC solver with the state of the vehicle that will occur after 0.1 seconds. This way the MPC solver will predict the steering angle & throttle that is to be applied after 0.1 seconds. Because of the system latency, the actuations would get applied only after 0.1 seconds which when the vehicle would be at the desired state. If this latency is not taken care, then the actuations will always have a delayed effect.
+The simulation system is set with a latency of 0.1 seconds. So a actuation of steering angle(delta) and throttle(a) would take into affect after 0.1 seconds. This can be taken into account by feeding MPC solver with the state of the vehicle that will occur after 0.1 seconds. This way the MPC solver will predict the steering angle & throttle that is to be applied after 0.1 seconds. Because of the system latency, these actuations would get applied only after 0.1 seconds which is when the vehicle would be at the desired state (state which is 0.1 seconds in the future). If this latency is not taken care, then the actuations will always have a delayed effect.
 
 The the MPC quiz and the forum discussions were very helpful
 
