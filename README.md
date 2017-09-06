@@ -15,12 +15,39 @@ The following equations handle the update of state over a time interval of dt. T
 Lf measures the distance between the front of the vehicle and its center of gravity.
 The model predicts the actuators to be applied (delta, a) so that the cross-track and orientation error minimizes.
 
+To predict the optimized actuation values, the MPC solver is selected with a cost function which accumulates at every step till the horizon & this cost function is minimized.
+
+The cost function is selected as:
+* (cte(t+1)))^2 - To minimize the cross-track error
+* (epsi(t+1))^2 - To minimize the orientation error
+* (v(t+1) - 40)^2 - where 40 mph is the reference velocity. To minimize the deviation from velocity of 40 mph.
+* (delta(t))^2 - To eliminate extreme actuations on steering wheel
+* (a(t))^2 - To eliminate extreme actuations on throttle
+* (delta(t+1) - delta(t))^2 - To minimize drastic changes in steering wheel actuation
+* (a(t+1) - a(t))^2 - To minimize drastic changes in throttle actuation
+
 ## Timestep Length and Elapsed Duration (N & dt)
 
 Over a few runs of the car on the track at an average of 40 mph, I considered a horizon time T of 1 second. 
 I tried to tune N & dt keeping T=1 second (T=N*dt) with various combinations till I obtained the optimum set of values  (N,dt) which gave a good result. I tried (20,0.05), (15,0.65), (10,0.1), (5,0.2).
-Based on the observation N=10 & dt=0.1 gave a good result.
+Based on the observation N=10 & dt=0.1 gave good result.
 
 ## Polynomial Fitting and MPC Preprocessing
 
+ The reference waypoints and car position were transformed from Map coordinates to car coordinates. The car coordinates would be (0,0) and orientation would be 0 radians in car coordinates space. A 3rd order polynomial is used to fit the reference waypoints.
+ f(x) = a0 + a1*x + a2*x^2 + a3*x^3.
+ The cross track error and orientation error are directly calculated as:
+ cte = f(0)
+ epsi = -arctan(f'(0))
+ 
+Calcualting the cte & epsi in Map coordinate space would involve a lot of mathematics. Instead it is easier to calculate them in car coordinate system. 
+The calculated state [x,y,psi,cte,epsi] is fed to the MPC solver to predict the next steering angle and throttle to be applied.
+
 ## Model Predictive Control with Latency
+
+The simulation system is set with a latency of 0.1 seconds. So a actuation of steering angle(delta) and throttle(a) would take into affect after 0.1 seconds. This can be taken into account by feeding MPC solver with the state of the vehicle that will occur after 0.1 seconds. This way the MPC solver will predict the steering angle & throttle that is to be applied after 0.1 seconds. Because of the system latency, the actuations would get applied only after 0.1 seconds which when the vehicle would be at the desired state. If this latency is not taken care, then the actuations will always have a delayed effect.
+
+The the MPC quiz and the forum discussions were very helpful
+
+## Result
+A video of the output result is also uploaded - video.mp4
